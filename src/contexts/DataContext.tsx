@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Client, Invoice, InvoiceItem } from '../types';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
@@ -35,13 +36,17 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      loadData();
+      if (!dataLoaded) {
+        loadData();
+      }
     } else {
       setClients([]);
       setInvoices([]);
+      setDataLoaded(false);
       setLoading(false);
     }
   }, [isAuthenticated, user]);
@@ -52,17 +57,30 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Charger les clients
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      // Charger les données en parallèle pour améliorer les performances
+      const [clientsResult, invoicesResult] = await Promise.all([
+        supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50), // Limiter le nombre de résultats
+        
+        supabase
+          .from('invoices')
+          .select(`
+            *,
+            clients!inner(*),
+            invoice_items(*)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20) // Limiter le nombre de factures chargées initialement
+      ]);
 
-      if (clientsError) {
-        console.error('Error loading clients:', clientsError);
-      } else {
-        const formattedClients: Client[] = clientsData.map(client => ({
+      // Traitement des clients
+      if (!clientsResult.error && clientsResult.data) {
+        const formattedClients: Client[] = clientsResult.data.map(client => ({
           id: client.id,
           name: client.name,
           email: client.email,
@@ -72,21 +90,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setClients(formattedClients);
       }
 
-      // Charger les factures avec les clients et les articles
-      const { data: invoicesData, error: invoicesError } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          clients!inner(*),
-          invoice_items(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (invoicesError) {
-        console.error('Error loading invoices:', invoicesError);
-      } else {
-        const formattedInvoices: Invoice[] = invoicesData.map(invoice => ({
+      // Traitement des factures
+      if (!invoicesResult.error && invoicesResult.data) {
+        const formattedInvoices: Invoice[] = invoicesResult.data.map(invoice => ({
           id: invoice.id,
           invoiceNumber: invoice.invoice_number,
           clientId: invoice.client_id,
@@ -117,6 +123,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }));
         setInvoices(formattedInvoices);
       }
+      
+      setDataLoaded(true);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -124,7 +132,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  const addClient = async (clientData: Omit<Client, 'id' | 'userId'>) => {
+  const addClient = useCallback(async (clientData: Omit<Client, 'id' | 'userId'>) => {
     if (!user) return;
 
     try {
@@ -157,9 +165,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Error in addClient:', error);
       throw error;
     }
-  };
+  }, [user]);
 
-  const updateClient = async (id: string, clientData: Partial<Client>) => {
+  const updateClient = useCallback(async (id: string, clientData: Partial<Client>) => {
     try {
       const { error } = await supabase
         .from('clients')
@@ -182,9 +190,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Error in updateClient:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const deleteClient = async (id: string) => {
+  const deleteClient = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('clients')
@@ -201,9 +209,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Error in deleteClient:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const generateInvoiceNumber = async (): Promise<string> => {
+  const generateInvoiceNumber = useCallback(async (): Promise<string> => {
     if (!user) throw new Error('User not authenticated');
 
     try {
@@ -224,9 +232,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       const nextNumber = userInvoices.length + 1;
       return `${currentYear}-${nextNumber.toString().padStart(4, '0')}`;
     }
-  };
+  }, [user, invoices]);
 
-  const addInvoice = async (invoiceData: Omit<Invoice, 'id' | 'invoiceNumber' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<Invoice> => {
+  const addInvoice = useCallback(async (invoiceData: Omit<Invoice, 'id' | 'invoiceNumber' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<Invoice> => {
     if (!user) throw new Error('User not authenticated');
 
     try {
@@ -298,9 +306,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Error in addInvoice:', error);
       throw error;
     }
-  };
+  }, [user, generateInvoiceNumber]);
 
-  const updateInvoice = async (id: string, invoiceData: Partial<Invoice>) => {
+  const updateInvoice = useCallback(async (id: string, invoiceData: Partial<Invoice>) => {
     try {
       const { error } = await supabase
         .from('invoices')
@@ -325,9 +333,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Error in updateInvoice:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const deleteInvoice = async (id: string) => {
+  const deleteInvoice = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('invoices')
@@ -344,21 +352,34 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Error in deleteInvoice:', error);
       throw error;
     }
-  };
+  }, []);
 
+  // Mémoriser les valeurs du contexte pour éviter les re-renders inutiles
+  const contextValue = useMemo(() => ({
+    clients,
+    invoices,
+    loading,
+    addClient,
+    updateClient,
+    deleteClient,
+    addInvoice,
+    updateInvoice,
+    deleteInvoice,
+    generateInvoiceNumber
+  }), [
+    clients,
+    invoices,
+    loading,
+    addClient,
+    updateClient,
+    deleteClient,
+    addInvoice,
+    updateInvoice,
+    deleteInvoice,
+    generateInvoiceNumber
+  ]);
   return (
-    <DataContext.Provider value={{
-      clients,
-      invoices,
-      loading,
-      addClient,
-      updateClient,
-      deleteClient,
-      addInvoice,
-      updateInvoice,
-      deleteInvoice,
-      generateInvoiceNumber
-    }}>
+    <DataContext.Provider value={contextValue}>
       {children}
     </DataContext.Provider>
   );

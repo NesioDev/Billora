@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Client, InvoiceItem } from '../types';
@@ -58,7 +58,7 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
     }
   }, [clients.length]);
 
-  const addItem = () => {
+  const addItem = useCallback(() => {
     const newItem: InvoiceItem = {
       id: Date.now().toString(),
       description: '',
@@ -67,13 +67,13 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
       total: 0
     };
     setItems([...items, newItem]);
-  };
+  }, [items]);
 
-  const removeItem = (id: string) => {
+  const removeItem = useCallback((id: string) => {
     setItems(items.filter(item => item.id !== id));
-  };
+  }, [items]);
 
-  const updateItem = (id: string, field: keyof InvoiceItem, value: string | number) => {
+  const updateItem = useCallback((id: string, field: keyof InvoiceItem, value: string | number) => {
     setItems(items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
@@ -84,11 +84,15 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
       }
       return item;
     }));
-  };
+  }, [items]);
 
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const taxAmount = subtotal * (taxRate / 100);
-  const total = subtotal + taxAmount;
+  // Mémoriser les calculs
+  const calculations = useMemo(() => {
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const taxAmount = subtotal * (taxRate / 100);
+    const total = subtotal + taxAmount;
+    return { subtotal, taxAmount, total };
+  }, [items, taxRate]);
 
   const formatAmount = (amount: number) => {
     if (currencySymbol === 'FCFA') {
@@ -97,7 +101,7 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
     return `${amount.toFixed(2)} ${currencySymbol}`;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClient) return;
 
@@ -110,10 +114,10 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
       issueDate,
       dueDate,
       items,
-      subtotal,
+      subtotal: calculations.subtotal,
       taxRate,
-      taxAmount,
-      total,
+      taxAmount: calculations.taxAmount,
+      total: calculations.total,
       status: 'draft' as const
     };
 
@@ -127,7 +131,7 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [selectedClient, issueDate, dueDate, items, calculations, taxRate, addInvoice]);
 
   const handleDownloadPDF = () => {
     if (!createdInvoice || !user) return;
@@ -239,8 +243,8 @@ ${user?.contact}`
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-2 text-gray-600">Chargement...</p>
+          <Loader className="h-6 w-6 animate-spin text-blue-600 mx-auto" />
+          <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
         </div>
       </div>
     );
@@ -480,7 +484,7 @@ ${user?.contact}`
             <div className="w-full max-w-xs space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium text-gray-700">Sous-total:</span>
-                <span className="text-gray-900">{formatAmount(subtotal)}</span>
+               <span className="text-gray-900">{formatAmount(calculations.subtotal)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <label htmlFor="taxRate" className="text-sm font-medium text-gray-700">
@@ -500,12 +504,12 @@ ${user?.contact}`
               {taxRate > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="font-medium text-gray-700">Montant taxe:</span>
-                  <span className="text-gray-900">{formatAmount(taxAmount)}</span>
+                 <span className="text-gray-900">{formatAmount(calculations.taxAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t pt-2">
                 <span className="text-base font-bold text-gray-900">Total:</span>
-                <span className="text-base font-bold text-gray-900">{formatAmount(total)}</span>
+               <span className="text-base font-bold text-gray-900">{formatAmount(calculations.total)}</span>
               </div>
             </div>
           </div>
@@ -677,4 +681,4 @@ ${user?.contact}`
   );
 };
 
-export default InvoiceCreator;
+export default memo(InvoiceCreator);

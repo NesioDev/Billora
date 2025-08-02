@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useState, memo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, User, FileText, Users, Settings, PlusCircle, Menu, X, FileCheck, HelpCircle } from 'lucide-react';
 
@@ -20,13 +20,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
     { id: 'profile', label: 'Profil', icon: Settings },
   ];
 
-  const handleNavigate = (page: string) => {
+  const handleNavigate = useCallback((page: string) => {
     onNavigate(page);
     setIsMobileMenuOpen(false);
-  };
+  }, [onNavigate]);
 
   // Composant Logo Billora amélioré pour l'en-tête
-  const BilloraLogo = ({ className = "text-xl sm:text-2xl" }: { className?: string }) => (
+  const BilloraLogo = memo(({ className = "text-xl sm:text-2xl" }: { className?: string }) => (
     <div className="flex items-center group cursor-pointer" onClick={() => onNavigate('dashboard')}>
       <div className="relative mr-3 transition-transform group-hover:scale-105">
         {/* Icône de document avec effet de profondeur */}
@@ -45,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
         </span>
       </div>
     </div>
-  );
+  ));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,4 +158,4 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
   );
 };
 
-export default Layout;
+export default memo(Layout);

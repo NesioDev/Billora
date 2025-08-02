@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Invoice } from '../types';
@@ -12,9 +12,15 @@ const Dashboard: React.FC = () => {
   const { user, getCurrencySymbol } = useAuth();
 
   const currencySymbol = getCurrencySymbol();
-  const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
-  const paidAmount = invoices.filter(i => i.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
-  const pendingAmount = totalAmount - paidAmount;
+  
+  // Mémoriser les calculs pour éviter les recalculs inutiles
+  const statistics = useMemo(() => {
+    const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
+    const paidAmount = invoices.filter(i => i.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
+    const pendingAmount = totalAmount - paidAmount;
+    
+    return { totalAmount, paidAmount, pendingAmount };
+  }, [invoices]);
 
   const getStatusIcon = (status: Invoice['status']) => {
     switch (status) {
@@ -68,11 +74,11 @@ const Dashboard: React.FC = () => {
     return `${amount.toFixed(2)} ${currencySymbol}`;
   };
 
-  const handleStatusChange = (invoiceId: string, newStatus: Invoice['status']) => {
+  const handleStatusChange = useMemo(() => (invoiceId: string, newStatus: Invoice['status']) => {
     updateInvoice(invoiceId, { status: newStatus });
-  };
+  }, [updateInvoice]);
 
-  const handleDownloadInvoicePDF = (invoice: Invoice) => {
+  const handleDownloadInvoicePDF = useMemo(() => (invoice: Invoice) => {
     if (!user) return;
 
     const userInfo = {
@@ -88,14 +94,14 @@ const Dashboard: React.FC = () => {
       userInfo,
       currencySymbol
     });
-  };
+  }, [user, currencySymbol]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-2 text-gray-600">Chargement des données...</p>
+          <Loader className="h-6 w-6 animate-spin text-blue-600 mx-auto" />
+          <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
         </div>
       </div>
     );
@@ -140,7 +146,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="ml-3 sm:ml-4 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
-              <p className="text-sm sm:text-2xl font-bold text-gray-900 truncate">{formatAmount(totalAmount)}</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 truncate">{formatAmount(statistics.totalAmount)}</p>
             </div>
           </div>
         </div>
@@ -152,7 +158,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="ml-3 sm:ml-4 min-w-0">
               <p className="text-xs sm:text-sm font-medium text-gray-600">Payé</p>
-              <p className="text-sm sm:text-2xl font-bold text-gray-900 truncate">{formatAmount(paidAmount)}</p>
+              <p className="text-sm sm:text-2xl font-bold text-gray-900 truncate">{formatAmount(statistics.paidAmount)}</p>
             </div>
           </div>
         </div>
@@ -304,4 +310,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

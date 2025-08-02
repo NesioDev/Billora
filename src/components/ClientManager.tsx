@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { useData } from '../contexts/DataContext';
 import { Client } from '../types';
 import { Plus, Edit2, Trash2, Users, Mail, MapPin, Loader, AlertCircle } from 'lucide-react';
@@ -15,7 +15,7 @@ const ClientManager: React.FC = () => {
     address: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
@@ -33,16 +33,16 @@ const ClientManager: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [editingClient, formData, updateClient, addClient]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({ name: '', email: '', address: '' });
     setEditingClient(null);
     setIsModalOpen(false);
     setError(null);
-  };
+  }, []);
 
-  const handleEdit = (client: Client) => {
+  const handleEdit = useCallback((client: Client) => {
     setEditingClient(client);
     setFormData({
       name: client.name,
@@ -50,9 +50,9 @@ const ClientManager: React.FC = () => {
       address: client.address
     });
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
       try {
         await deleteClient(id);
@@ -61,21 +61,21 @@ const ClientManager: React.FC = () => {
         console.error('Error deleting client:', err);
       }
     }
-  };
+  }, [deleteClient]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
+  }, [formData]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-2 text-gray-600">Chargement des clients...</p>
+          <Loader className="h-6 w-6 animate-spin text-blue-600 mx-auto" />
+          <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
         </div>
       </div>
     );
@@ -228,4 +228,4 @@ const ClientManager: React.FC = () => {
   );
 };
 
-export default ClientManager;
+export default memo(ClientManager);
