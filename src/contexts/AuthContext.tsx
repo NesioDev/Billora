@@ -32,8 +32,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Vérifier la session existante
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       if (session?.user) {
         loadUserProfile(session.user);
       } else {
@@ -43,20 +47,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       if (session?.user) {
         await loadUserProfile(session.user);
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (authUser: SupabaseUser) => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -105,10 +114,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       setIsAuthenticated(true);
+      setLoading(false);
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
-      setLoading(false);
-    } finally {
       setLoading(false);
     }
   };

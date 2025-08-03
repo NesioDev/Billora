@@ -47,9 +47,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       setClients([]);
       setInvoices([]);
       setDataLoaded(false);
-      if (!isAuthenticated) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [isAuthenticated, user]);
 

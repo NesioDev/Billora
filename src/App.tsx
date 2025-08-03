@@ -18,7 +18,7 @@ const AppContent: React.FC = () => {
   }
 
   // Check if profile is complete
-  const isProfileComplete = user && user.fullName && user.companyName && user.address && user.contact && user.currency;
+  const isProfileComplete = user?.fullName && user?.companyName && user?.address && user?.contact && user?.currency;
 
   if (!isProfileComplete && currentPage !== 'profile') {
     return <ProfileSetup onComplete={() => setCurrentPage('dashboard')} />;
