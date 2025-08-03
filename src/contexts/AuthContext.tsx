@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     // Vérifier la session existante
@@ -38,9 +37,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (session?.user) {
         loadUserProfile(session.user);
       } else {
-        setInitialLoad(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Écouter les changements d'authentification
@@ -107,9 +105,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       setIsAuthenticated(true);
-      setInitialLoad(false);
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -206,22 +204,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   if (loading) {
-    // Affichage plus rapide pour le chargement initial
-    if (initialLoad) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
-          </div>
-        </div>
-      );
-    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
         </div>
       </div>
     );
