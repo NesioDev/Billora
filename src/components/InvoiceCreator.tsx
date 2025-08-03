@@ -2,7 +2,7 @@ import React, { useState, memo, useCallback, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Client, InvoiceItem } from '../types';
-import { Plus, Trash2, Download, Send, CheckCircle, Settings, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Download, Send, CheckCircle, Settings, AlertCircle, Loader } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
