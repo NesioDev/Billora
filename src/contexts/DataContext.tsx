@@ -4,10 +4,24 @@ import { Client, Invoice, InvoiceItem } from '../types';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
+// Timeout pour les requêtes de données (15 secondes)
+const DATA_TIMEOUT = 15000;
+
+// Fonction utilitaire pour ajouter un timeout aux requêtes
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout: Requête trop longue')), timeoutMs)
+    )
+  ]);
+};
+
 interface DataContextType {
   clients: Client[];
   invoices: Invoice[];
   loading: boolean;
+  error: string | null;
   addClient: (client: Omit<Client, 'id' | 'userId'>) => Promise<void>;
   updateClient: (id: string, client: Partial<Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
@@ -36,37 +50,57 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    
     if (isAuthenticated && user) {
       if (!dataLoaded) {
-        loadData();
+        loadData(mounted);
       }
     } else {
       setClients([]);
       setInvoices([]);
       setDataLoaded(false);
+      setError(null);
       setLoading(false);
     }
+    
+    return () => {
+      mounted = false;
+    };
   }, [isAuthenticated, user]);
 
-  const loadData = async () => {
-    if (!user) return;
+  const loadData = async (mounted: boolean = true) => {
+    if (!user || !mounted) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
+      
+      // Timeout de sécurité global
+      const timeoutId = setTimeout(() => {
+        if (mounted) {
+          console.warn('Timeout de chargement des données - mode offline');
+          setError('Chargement lent - certaines données peuvent être indisponibles');
+          setLoading(false);
+        }
+      }, DATA_TIMEOUT);
       
       // Charger les données en parallèle pour améliorer les performances
-      const [clientsResult, invoicesResult] = await Promise.all([
-        supabase
+      const clientsPromise = supabase
           .from('clients')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50), // Limiter le nombre de résultats
+          .limit(50);
         
-        supabase
+      const invoicesPromise = supabase
           .from('invoices')
           .select(`
             *,
@@ -75,8 +109,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(20) // Limiter le nombre de factures chargées initialement
+          .limit(20);
+          
+      const [clientsResult, invoicesResult] = await Promise.all([
+        withTimeout(clientsPromise, DATA_TIMEOUT),
+        withTimeout(invoicesPromise, DATA_TIMEOUT)
       ]);
+      
+      clearTimeout(timeoutId);
+      
+      if (!mounted) return;
 
       // Traitement des clients
       if (!clientsResult.error && clientsResult.data) {
@@ -88,6 +130,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           userId: client.user_id
         }));
         setClients(formattedClients);
+      } else if (clientsResult.error) {
+        console.error('Erreur chargement clients:', clientsResult.error);
+        setError('Erreur de chargement des clients');
+        setClients([]); // Fallback vers liste vide
       }
 
       // Traitement des factures
@@ -122,13 +168,24 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           updatedAt: invoice.updated_at
         }));
         setInvoices(formattedInvoices);
+      } else if (invoicesResult.error) {
+        console.error('Erreur chargement factures:', invoicesResult.error);
+        setError('Erreur de chargement des factures');
+        setInvoices([]); // Fallback vers liste vide
       }
       
       setDataLoaded(true);
     } catch (error) {
       console.error('Error loading data:', error);
+      if (mounted) {
+        setError(error instanceof Error ? error.message : 'Erreur de chargement des données');
+        // En cas d'erreur, on garde les données existantes mais on arrête le loading
+        setDataLoaded(true);
+      }
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   };
 
@@ -136,7 +193,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const insertPromise = supabase
         .from('clients')
         .insert({
           user_id: user.id,
@@ -146,6 +203,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         })
         .select()
         .single();
+        
+      const { data, error } = await withTimeout(insertPromise, DATA_TIMEOUT);
 
       if (error) {
         console.error('Error adding client:', error);
@@ -169,7 +228,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const updateClient = useCallback(async (id: string, clientData: Partial<Client>) => {
     try {
-      const { error } = await supabase
+      const updatePromise = supabase
         .from('clients')
         .update({
           name: clientData.name,
@@ -177,6 +236,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           address: clientData.address
         })
         .eq('id', id);
+        
+      const { error } = await withTimeout(updatePromise, DATA_TIMEOUT);
 
       if (error) {
         console.error('Error updating client:', error);
@@ -194,10 +255,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const deleteClient = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase
+      const deletePromise = supabase
         .from('clients')
         .delete()
         .eq('id', id);
+        
+      const { error } = await withTimeout(deletePromise, DATA_TIMEOUT);
 
       if (error) {
         console.error('Error deleting client:', error);
@@ -215,8 +278,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     if (!user) throw new Error('User not authenticated');
 
     try {
-      const { data, error } = await supabase
+      const rpcPromise = supabase
         .rpc('get_next_invoice_number', { p_user_id: user.id });
+        
+      const { data, error } = await withTimeout(rpcPromise, DATA_TIMEOUT);
 
       if (error) {
         console.error('Error generating invoice number:', error);
@@ -241,7 +306,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       const invoiceNumber = await generateInvoiceNumber();
 
       // Créer la facture
-      const { data: invoiceResult, error: invoiceError } = await supabase
+      const invoicePromise = supabase
         .from('invoices')
         .insert({
           user_id: user.id,
@@ -257,6 +322,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         })
         .select()
         .single();
+        
+      const { data: invoiceResult, error: invoiceError } = await withTimeout(invoicePromise, DATA_TIMEOUT);
 
       if (invoiceError) {
         console.error('Error creating invoice:', invoiceError);
@@ -273,9 +340,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         sort_order: index
       }));
 
-      const { error: itemsError } = await supabase
+      const itemsPromise = supabase
         .from('invoice_items')
         .insert(itemsToInsert);
+        
+      const { error: itemsError } = await withTimeout(itemsPromise, DATA_TIMEOUT);
 
       if (itemsError) {
         console.error('Error creating invoice items:', itemsError);
@@ -310,7 +379,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const updateInvoice = useCallback(async (id: string, invoiceData: Partial<Invoice>) => {
     try {
-      const { error } = await supabase
+      const updatePromise = supabase
         .from('invoices')
         .update({
           status: invoiceData.status,
@@ -320,6 +389,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           total: invoiceData.total
         })
         .eq('id', id);
+        
+      const { error } = await withTimeout(updatePromise, DATA_TIMEOUT);
 
       if (error) {
         console.error('Error updating invoice:', error);
@@ -337,10 +408,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const deleteInvoice = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase
+      const deletePromise = supabase
         .from('invoices')
         .delete()
         .eq('id', id);
+        
+      const { error } = await withTimeout(deletePromise, DATA_TIMEOUT);
 
       if (error) {
         console.error('Error deleting invoice:', error);
@@ -359,6 +432,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     clients,
     invoices,
     loading,
+    error,
     addClient,
     updateClient,
     deleteClient,
@@ -370,6 +444,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     clients,
     invoices,
     loading,
+    error,
     addClient,
     updateClient,
     deleteClient,

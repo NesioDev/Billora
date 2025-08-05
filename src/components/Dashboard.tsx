@@ -8,7 +8,7 @@ import { fr } from 'date-fns/locale';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
 
 const Dashboard: React.FC = () => {
-  const { invoices, clients, updateInvoice, loading } = useData();
+  const { invoices, clients, updateInvoice, loading, error } = useData();
   const { user, getCurrencySymbol } = useAuth();
 
   const currencySymbol = getCurrencySymbol();
@@ -101,7 +101,20 @@ const Dashboard: React.FC = () => {
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
+          <p className="mt-2 text-gray-600 text-sm">
+            {error ? 'Connexion en cours...' : 'Chargement du tableau de bord...'}
+          </p>
+          {error && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md max-w-sm mx-auto">
+              <p className="text-yellow-800 text-xs">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-xs text-yellow-600 hover:text-yellow-800 underline"
+              >
+                Réessayer
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -109,6 +122,18 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {error && !loading && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Attention:</strong> {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="flex justify-between items-center">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Tableau de bord</h2>
       </div>

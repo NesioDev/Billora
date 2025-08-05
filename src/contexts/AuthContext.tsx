@@ -4,6 +4,19 @@ import { User, AuthState } from '../types';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+// Timeout pour les requêtes Supabase (10 secondes)
+const SUPABASE_TIMEOUT = 10000;
+
+// Fonction utilitaire pour ajouter un timeout aux requêtes
+const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout: Requête trop longue')), timeoutMs)
+    )
+  ]);
+};
+
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string) => Promise<boolean>;
@@ -30,24 +43,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
     
-    // Vérifier la session existante
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      if (session?.user) {
-        loadUserProfile(session.user);
-      } else {
-        setLoading(false);
+    const initAuth = async () => {
+      try {
+        // Timeout de sécurité global
+        timeoutId = setTimeout(() => {
+          if (mounted) {
+            console.warn('Timeout d\'initialisation auth - passage en mode offline');
+            setError('Connexion lente - mode offline activé');
+            setLoading(false);
+          }
+        }, SUPABASE_TIMEOUT);
+
+        // Vérifier la session existante avec timeout
+        const sessionPromise = supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await withTimeout(sessionPromise, SUPABASE_TIMEOUT);
+        
+        if (!mounted) return;
+        
+        clearTimeout(timeoutId);
+        
+        if (sessionError) {
+          console.error('Erreur session:', sessionError);
+          setError('Erreur de connexion');
+          setLoading(false);
+          return;
+        }
+        
+        if (session?.user) {
+          await loadUserProfile(session.user);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        if (mounted) {
+          console.error('Erreur initialisation auth:', error);
+          setError(error instanceof Error ? error.message : 'Erreur de connexion');
+          setLoading(false);
+        }
       }
-    });
+    };
+
+    initAuth();
 
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      
+      setError(null); // Reset error on auth change
       
       if (session?.user) {
         await loadUserProfile(session.user);
@@ -60,20 +108,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => {
       mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
 
   const loadUserProfile = async (authUser: SupabaseUser) => {
+    if (!authUser?.id) {
+      console.error('AuthUser invalide');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
+      // Requête avec timeout
+      const profilePromise = supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
         .maybeSingle();
+        
+      const { data, error } = await withTimeout(profilePromise, SUPABASE_TIMEOUT);
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading user profile:', error);
+        setError('Erreur de chargement du profil');
         setLoading(false);
         return;
       }
@@ -91,13 +150,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       } else {
         // Créer le profil utilisateur s'il n'existe pas
-        const { error: insertError } = await supabase
+        const insertPromise = supabase
           .from('users')
           .insert({
             id: authUser.id,
             email: authUser.email || '',
             currency: 'EUR'
           });
+          
+        const { error: insertError } = await withTimeout(insertPromise, SUPABASE_TIMEOUT);
 
         if (!insertError) {
           setUser({
@@ -117,6 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
+      setError('Erreur de chargement du profil');
       setLoading(false);
     }
   };
@@ -137,10 +199,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const loginPromise = supabase.auth.signInWithPassword({
         email,
         password
       });
+      
+      const { error } = await withTimeout(loginPromise, SUPABASE_TIMEOUT);
 
       if (error) {
         console.error('Login error:', error);
@@ -156,10 +220,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const registerPromise = supabase.auth.signUp({
         email,
         password
       });
+      
+      const { error } = await withTimeout(registerPromise, SUPABASE_TIMEOUT);
 
       if (error) {
         console.error('Registration error:', error);
@@ -187,7 +253,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const updatePromise = supabase
         .from('users')
         .update({
           full_name: profile.fullName,
@@ -198,6 +264,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           currency: profile.currency
         })
         .eq('id', user.id);
+        
+      const { error } = await withTimeout(updatePromise, SUPABASE_TIMEOUT);
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -216,7 +284,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600 text-sm">Chargement...</p>
+          <p className="mt-2 text-gray-600 text-sm">
+            {error ? 'Connexion en cours...' : 'Chargement...'}
+          </p>
+          {error && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md max-w-sm mx-auto">
+              <p className="text-yellow-800 text-xs">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-xs text-yellow-600 hover:text-yellow-800 underline"
+              >
+                Réessayer
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
