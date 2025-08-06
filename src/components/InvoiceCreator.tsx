@@ -463,7 +463,7 @@ ${user?.contact}`
                         min="1"
                         value={item.quantity}
                         onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
-                       onFocus={(e) => e.target.select()}
+                       onFocus={(e) => e.target.value = ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -477,7 +477,7 @@ ${user?.contact}`
                         step="0.01"
                         value={item.unitPrice}
                         onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                       onFocus={(e) => e.target.select()}
+                       onFocus={(e) => e.target.value = ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -527,7 +527,7 @@ ${user?.contact}`
                   step="0.1"
                   value={taxRate}
                   onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                 onFocus={(e) => e.target.select()}
+                 onFocus={(e) => e.target.value = ''}
                   className="w-16 sm:w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
