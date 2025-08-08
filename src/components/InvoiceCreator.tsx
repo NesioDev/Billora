@@ -2,7 +2,7 @@ import React, { useState, memo, useCallback, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Client, InvoiceItem } from '../types';
-import { Plus, Trash2, Download, Send, CheckCircle, Settings, AlertCircle, Loader } from 'lucide-react';
+import { Plus, Trash2, Download, Send, CheckCircle, Settings, AlertCircle, Loader, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
@@ -149,6 +149,328 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onComplete }) => {
       userInfo,
       currencySymbol
     });
+  };
+
+  const handlePrintInvoice = () => {
+    if (!createdInvoice || !user) return;
+
+    const userInfo = {
+      fullName: user.fullName || '',
+      companyName: user.companyName || '',
+      address: user.address || '',
+      contact: user.contact || '',
+      paymentInstructions: user.paymentInstructions || ''
+    };
+
+    // Créer une nouvelle fenêtre pour l'impression
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    // Générer le HTML pour l'impression
+    const printHTML = generatePrintHTML(createdInvoice, userInfo, currencySymbol);
+    
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+    
+    // Attendre que le contenu soit chargé puis imprimer
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
+  };
+
+  // Fonction pour générer le HTML d'impression
+  const generatePrintHTML = (invoice: any, userInfo: any, currencySymbol: string) => {
+    const formatAmount = (amount: number) => {
+      if (currencySymbol === 'FCFA') {
+        return `${Math.round(amount).toLocaleString('fr-FR').replace(/\s/g, ' ')} ${currencySymbol}`;
+      }
+      return `${amount.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ${currencySymbol}`;
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Facture ${invoice.invoiceNumber}</title>
+        <style>
+          @media print {
+            @page {
+              margin: 1cm;
+              size: A4;
+            }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+          
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+          }
+          
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
+          }
+          
+          .logo-section {
+            display: flex;
+            align-items: center;
+          }
+          
+          .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-right: 10px;
+          }
+          
+          .invoice-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+          }
+          
+          .company-info {
+            margin-bottom: 30px;
+          }
+          
+          .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+          }
+          
+          .company-details {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          
+          .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+          }
+          
+          .client-info, .invoice-info {
+            flex: 1;
+          }
+          
+          .invoice-info {
+            text-align: right;
+            margin-left: 40px;
+          }
+          
+          .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+          }
+          
+          .info-line {
+            margin-bottom: 5px;
+            font-size: 14px;
+          }
+          
+          .label {
+            color: #666;
+            display: inline-block;
+            width: 120px;
+          }
+          
+          .value {
+            color: #333;
+            font-weight: 500;
+          }
+          
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+          }
+          
+          .items-table th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            font-size: 14px;
+          }
+          
+          .items-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+          }
+          
+          .items-table tr:nth-child(even) {
+            background-color: #fafafa;
+          }
+          
+          .text-right {
+            text-align: right;
+          }
+          
+          .text-center {
+            text-align: center;
+          }
+          
+          .totals {
+            margin-left: auto;
+            width: 300px;
+            margin-bottom: 30px;
+          }
+          
+          .total-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+          }
+          
+          .total-line.final {
+            border-top: 2px solid #333;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
+            padding-top: 10px;
+          }
+          
+          .payment-instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #2563eb;
+          }
+          
+          .payment-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+          }
+          
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo-section">
+            <div class="logo">📄 Billora</div>
+          </div>
+          <h1 class="invoice-title">FACTURE</h1>
+        </div>
+        
+        <div class="company-info">
+          <div class="company-name">${userInfo.fullName}</div>
+          <div class="company-details">
+            ${userInfo.companyName}<br>
+            ${userInfo.address.split(',').join('<br>')}<br>
+            ${userInfo.contact}
+          </div>
+        </div>
+        
+        <div class="invoice-details">
+          <div class="client-info">
+            <div class="section-title">Facturé à :</div>
+            <div class="info-line"><strong>${invoice.client.name}</strong></div>
+            <div class="info-line">${invoice.client.email}</div>
+            <div class="info-line">${invoice.client.address}</div>
+          </div>
+          
+          <div class="invoice-info">
+            <div class="info-line">
+              <span class="label">Numéro :</span>
+              <span class="value">${invoice.invoiceNumber}</span>
+            </div>
+            <div class="info-line">
+              <span class="label">Date d'émission :</span>
+              <span class="value">${format(new Date(invoice.issueDate), 'dd/MM/yyyy', { locale: fr })}</span>
+            </div>
+            <div class="info-line">
+              <span class="label">Date d'échéance :</span>
+              <span class="value">${format(new Date(invoice.dueDate), 'dd/MM/yyyy', { locale: fr })}</span>
+            </div>
+          </div>
+        </div>
+        
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="text-center">Quantité</th>
+              <th class="text-right">Prix unitaire</th>
+              <th class="text-right">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.items.map((item: any) => `
+              <tr>
+                <td>${item.description}</td>
+                <td class="text-center">${item.quantity}</td>
+                <td class="text-right">${formatAmount(item.unitPrice)}</td>
+                <td class="text-right">${formatAmount(item.total)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <div class="total-line">
+            <span>Sous-total :</span>
+            <span>${formatAmount(invoice.subtotal)}</span>
+          </div>
+          ${invoice.taxRate > 0 ? `
+            <div class="total-line">
+              <span>TVA (${invoice.taxRate}%) :</span>
+              <span>${formatAmount(invoice.taxAmount)}</span>
+            </div>
+          ` : ''}
+          <div class="total-line final">
+            <span>TOTAL :</span>
+            <span>${formatAmount(invoice.total)}</span>
+          </div>
+        </div>
+        
+        ${userInfo.paymentInstructions ? `
+          <div class="payment-instructions">
+            <div class="payment-title">Instructions de paiement :</div>
+            <div>${userInfo.paymentInstructions.replace(/\n/g, '<br>')}</div>
+          </div>
+        ` : ''}
+        
+        <div class="footer">
+          <p>Facture générée le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })} par Billora</p>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
   const handleSendEmail = () => {
@@ -591,6 +913,14 @@ ${user?.contact}`
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Télécharger le PDF
+                </button>
+                
+                <button
+                  onClick={handlePrintInvoice}
+                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimer la facture
                 </button>
                 
                 <button
