@@ -1,8 +1,9 @@
 import React, { memo, useMemo } from 'react';
+import { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Invoice } from '../types';
-import { FileText, Users, Euro, Calendar, CheckCircle, Clock, AlertCircle, XCircle, Download, Loader, Printer } from 'lucide-react';
+import { FileText, Users, Euro, Calendar, CheckCircle, Clock, AlertCircle, XCircle, Download, Loader, Printer, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
@@ -10,6 +11,8 @@ import { downloadInvoicePDF } from '../utils/pdfGenerator';
 const Dashboard: React.FC = () => {
   const { invoices, clients, updateInvoice, loading, error } = useData();
   const { user, getCurrencySymbol } = useAuth();
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showActionsModal, setShowActionsModal] = useState(false);
 
   const currencySymbol = getCurrencySymbol();
   
@@ -528,7 +531,11 @@ const Dashboard: React.FC = () => {
             {/* Mobile view */}
             <div className="block sm:hidden">
               {invoices.map((invoice) => (
-                <div key={invoice.id} className="border-b border-gray-200 p-4 space-y-3">
+                <div 
+                  key={invoice.id} 
+                  className="border-b border-gray-200 p-4 space-y-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => handleInvoiceClick(invoice)}
+                >
                   <div className="flex justify-between items-start">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 truncate">{invoice.client.name}</p>
@@ -558,6 +565,7 @@ const Dashboard: React.FC = () => {
                       <select
                         value={invoice.status}
                         onChange={(e) => handleStatusChange(invoice.id, e.target.value as Invoice['status'])}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full"
                       >
                         <option value="draft">Brouillon</option>
@@ -566,16 +574,6 @@ const Dashboard: React.FC = () => {
                         <option value="overdue">En retard</option>
                       </select>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => handleDownloadInvoicePDF(invoice)}
-                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    >
-                      <Download className="h-3 w-3 mr-1" />
-                      PDF
-                    </button>
                   </div>
                 </div>
               ))}
