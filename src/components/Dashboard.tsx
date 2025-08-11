@@ -651,11 +651,11 @@ const Dashboard: React.FC = () => {
                         Imprimer
                       </button>
                       <button
-                        onClick={() => handlePrintInvoice(invoice)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-600 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        onClick={() => alert('Fonctionnalité d\'envoi par email à implémenter')}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
-                        <Printer className="h-3 w-3 mr-1" />
-                        Imprimer
+                        <Send className="h-3 w-3 mr-1" />
+                        Email
                       </button>
                     </td>
                   </tr>
