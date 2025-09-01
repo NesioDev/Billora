@@ -464,15 +464,15 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
             </div>
-            <div className="ml-3 sm:ml-4 min-w-0">
+            <div className="ml-2 sm:ml-3 lg:ml-4 min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600">Factures</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900">{invoices.length}</p>
+              <p className="text-base sm:text-lg lg:text-2xl font-bold text-gray-900">{invoices.length}</p>
             </div>
           </div>
         </div>
@@ -482,9 +482,9 @@ const Dashboard: React.FC = () => {
             <div className="flex-shrink-0">
               <Users className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
             </div>
-            <div className="ml-3 sm:ml-4 min-w-0">
+            <div className="ml-2 sm:ml-3 lg:ml-4 min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600">Clients</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900">{clients.length}</p>
+              <p className="text-base sm:text-lg lg:text-2xl font-bold text-gray-900">{clients.length}</p>
             </div>
           </div>
         </div>
@@ -494,9 +494,9 @@ const Dashboard: React.FC = () => {
             <div className="flex-shrink-0">
               <Euro className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
             </div>
-            <div className="ml-3 sm:ml-4 min-w-0">
+            <div className="ml-2 sm:ml-3 lg:ml-4 min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
-              <p className="text-sm sm:text-2xl font-bold text-gray-900 truncate">{formatAmount(statistics.totalAmount)}</p>
+              <p className="text-xs sm:text-sm lg:text-xl xl:text-2xl font-bold text-gray-900 break-all">{formatAmount(statistics.totalAmount)}</p>
             </div>
           </div>
         </div>
@@ -506,9 +506,9 @@ const Dashboard: React.FC = () => {
             <div className="flex-shrink-0">
               <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
             </div>
-            <div className="ml-3 sm:ml-4 min-w-0">
+            <div className="ml-2 sm:ml-3 lg:ml-4 min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-gray-600">Payé</p>
-              <p className="text-sm sm:text-2xl font-bold text-gray-900 truncate">{formatAmount(statistics.paidAmount)}</p>
+              <p className="text-xs sm:text-sm lg:text-xl xl:text-2xl font-bold text-gray-900 break-all">{formatAmount(statistics.paidAmount)}</p>
             </div>
           </div>
         </div>
@@ -537,28 +537,28 @@ const Dashboard: React.FC = () => {
                   onClick={() => handleInvoiceClick(invoice)}
                 >
                   <div className="flex justify-between items-start">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{invoice.client.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{invoice.client.email}</p>
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="text-sm font-medium text-gray-900 break-words">{invoice.client.name}</p>
+                      <p className="text-xs text-gray-500 break-all">{invoice.client.email}</p>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(invoice.status)}`}>
                       {getStatusIcon(invoice.status)}
-                      <span className="ml-1">{getStatusLabel(invoice.status)}</span>
+                      <span className="ml-1 hidden xs:inline">{getStatusLabel(invoice.status)}</span>
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Numéro</p>
-                      <p className="font-medium">{invoice.invoiceNumber}</p>
+                      <p className="font-medium text-xs sm:text-sm break-all">{invoice.invoiceNumber}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Montant</p>
-                      <p className="font-medium">{formatAmount(invoice.total)}</p>
+                      <p className="font-medium text-xs sm:text-sm break-all">{formatAmount(invoice.total)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Date</p>
-                      <p className="font-medium">{format(new Date(invoice.issueDate), 'dd/MM/yyyy', { locale: fr })}</p>
+                      <p className="font-medium text-xs sm:text-sm">{format(new Date(invoice.issueDate), 'dd/MM/yy', { locale: fr })}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Statut</p>
@@ -566,7 +566,7 @@ const Dashboard: React.FC = () => {
                         value={invoice.status}
                         onChange={(e) => handleStatusChange(invoice.id, e.target.value as Invoice['status'])}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full"
+                        className="text-xs border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full py-1"
                       >
                         <option value="draft">Brouillon</option>
                         <option value="sent">Envoyée</option>
@@ -629,7 +629,7 @@ const Dashboard: React.FC = () => {
                       <select
                         value={invoice.status}
                         onChange={(e) => handleStatusChange(invoice.id, e.target.value as Invoice['status'])}
-                        className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="text-xs lg:text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 mr-2"
                       >
                         <option value="draft">Brouillon</option>
                         <option value="sent">Envoyée</option>
@@ -638,24 +638,24 @@ const Dashboard: React.FC = () => {
                       </select>
                       <button
                         onClick={() => handleDownloadInvoicePDF(invoice)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        className="inline-flex items-center px-2 lg:px-3 py-1 border border-transparent text-xs font-medium rounded text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                       >
-                        <Download className="h-3 w-3 mr-1" />
-                        PDF
+                        <Download className="h-3 w-3 lg:mr-1" />
+                        <span className="hidden lg:inline">PDF</span>
                       </button>
                       <button
                         onClick={() => handlePrintInvoice(invoice)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-600 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        className="inline-flex items-center px-2 lg:px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-600 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                       >
-                        <Printer className="h-3 w-3 mr-1" />
-                        Imprimer
+                        <Printer className="h-3 w-3 lg:mr-1" />
+                        <span className="hidden lg:inline">Imprimer</span>
                       </button>
                       <button
                         onClick={() => alert('Fonctionnalité d\'envoi par email à implémenter')}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="inline-flex items-center px-2 lg:px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
-                        <Send className="h-3 w-3 mr-1" />
-                        Email
+                        <Send className="h-3 w-3 lg:mr-1" />
+                        <span className="hidden lg:inline">Email</span>
                       </button>
                     </td>
                   </tr>

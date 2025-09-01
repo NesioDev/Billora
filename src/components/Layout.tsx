@@ -51,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <BilloraLogo />
@@ -80,17 +80,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
             </div>
             
             {/* Desktop user menu */}
-            <div className="hidden md:flex items-center space-x-4">
-              <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
+              <div className="flex items-center text-xs lg:text-sm text-gray-600 bg-gray-50 px-2 lg:px-3 py-1 lg:py-2 rounded-lg">
                 <User className="h-4 w-4 mr-2 text-gray-400" />
-                <span className="truncate max-w-32 font-medium">{user?.email}</span>
+                <span className="truncate max-w-20 lg:max-w-32 font-medium">{user?.email}</span>
               </div>
               <button
                 onClick={logout}
-                className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+                className="flex items-center px-2 lg:px-3 py-1 lg:py-2 rounded-md text-xs lg:text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
               >
                 <LogOut className="h-4 w-4 mr-1" />
-                Déconnexion
+                <span className="hidden lg:inline">Déconnexion</span>
+                <span className="lg:hidden">Sortir</span>
               </button>
             </div>
 
@@ -151,7 +152,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
         )}
       </nav>
 
-      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-3 sm:py-4 lg:py-6 px-3 sm:px-4 lg:px-6 xl:px-8">
         {children}
       </main>
     </div>
