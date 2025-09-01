@@ -597,10 +597,10 @@ ${user?.contact}`
   return (
     <div className="space-y-4 sm:space-y-6">
       {error && !loading && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 sm:p-4">
           <div className="flex">
             <div className="ml-3">
-              <p className="text-sm text-yellow-800">
+              <p className="text-xs sm:text-sm text-yellow-800">
                 <strong>Attention:</strong> {error}
               </p>
             </div>
@@ -608,7 +608,7 @@ ${user?.contact}`
         </div>
       )}
       
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Créer une nouvelle facture</h2>
       </div>
 
@@ -832,7 +832,7 @@ ${user?.contact}`
           </div>
 
           <div className="flex justify-end">
-            <div className="w-full max-w-xs space-y-2">
+            <div className="w-full sm:max-w-xs space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium text-gray-700">Sous-total:</span>
                <span className="text-gray-900">{formatAmount(calculations.subtotal)}</span>
@@ -850,7 +850,7 @@ ${user?.contact}`
                   value={taxRate}
                   onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
                  onFocus={(e) => e.target.value = ''}
-                  className="w-16 sm:w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-14 sm:w-16 lg:w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                 />
               </div>
               {taxRate > 0 && (
@@ -859,9 +859,9 @@ ${user?.contact}`
                  <span className="text-gray-900">{formatAmount(calculations.taxAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-base font-bold text-gray-900">Total:</span>
-               <span className="text-base font-bold text-gray-900">{formatAmount(calculations.total)}</span>
+              <div className="flex justify-between border-t pt-2 text-sm sm:text-base">
+                <span className="font-bold text-gray-900">Total:</span>
+               <span className="font-bold text-gray-900 break-all">{formatAmount(calculations.total)}</span>
               </div>
             </div>
           </div>

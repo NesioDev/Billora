@@ -56,15 +56,15 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
   const isProfileComplete = user?.fullName && user?.companyName && user?.address && user?.contact && user?.currency;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6">
-      <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6">
+    <div className="max-w-2xl mx-auto px-3 sm:px-4 lg:px-6">
+      <div className="bg-white shadow-lg rounded-lg p-3 sm:p-4 lg:p-6">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
           {isProfileComplete ? 'Modifier mon profil' : 'Configuration du profil'}
         </h2>
         
         {!isProfileComplete && (
-          <div className="bg-blue-50 p-4 rounded-md mb-4 sm:mb-6">
-            <p className="text-blue-800 text-sm">
+          <div className="bg-blue-50 p-3 sm:p-4 rounded-md mb-4 sm:mb-6">
+            <p className="text-blue-800 text-xs sm:text-sm">
               Complétez votre profil pour commencer à créer des factures professionnelles.
             </p>
           </div>
@@ -84,7 +84,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
                 required
                 value={formData.fullName}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base px-3 py-2 border"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2 border"
                 placeholder="Votre nom complet"
               />
             </div>
@@ -101,7 +101,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
                 required
                 value={formData.companyName}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base px-3 py-2 border"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2 border"
                 placeholder="Nom de votre entreprise"
               />
             </div>
@@ -119,7 +119,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
               required
               value={formData.address}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base px-3 py-2 border"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2 border"
               placeholder="Adresse complète de votre entreprise"
             />
           </div>
@@ -137,7 +137,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
                 required
                 value={formData.contact}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base px-3 py-2 border"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2 border"
                 placeholder="Téléphone, email ou autre contact"
               />
             </div>
@@ -153,7 +153,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
                 required
                 value={formData.currency}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base px-3 py-2 border"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2 border"
               >
                 {currencies.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -175,24 +175,24 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
               rows={4}
               value={formData.paymentInstructions}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base px-3 py-2 border resize-none"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2 border resize-none"
               placeholder="Instructions spéciales pour le paiement (optionnel)"
             />
           </div>
 
           {/* Configuration Email */}
-          <div className="border-t pt-6">
+          <div className="border-t pt-4 sm:pt-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Configuration Email</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900">Configuration Email</h3>
+                <p className="text-xs sm:text-sm text-gray-500">
                   Configurez votre email pour envoyer les factures automatiquement
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowEmailSettings(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex-shrink-0"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 {emailConfig ? 'Modifier' : 'Configurer'}
@@ -200,13 +200,13 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
             </div>
             
             {emailConfig && (
-              <div className="bg-green-50 p-3 rounded-md">
+              <div className="bg-green-50 p-3 rounded-md mt-3">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <Mail className="h-5 w-5 text-green-400" />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-green-800">
+                    <p className="text-xs sm:text-sm font-medium text-green-800 break-all">
                       Email configuré : {emailConfig.fromEmail}
                     </p>
                   </div>

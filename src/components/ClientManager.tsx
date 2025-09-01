@@ -97,10 +97,10 @@ const ClientManager: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       {error && !loading && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 sm:p-4">
           <div className="flex">
             <div className="ml-3">
-              <p className="text-sm text-yellow-800">
+              <p className="text-xs sm:text-sm text-yellow-800">
                 <strong>Attention:</strong> {error}
               </p>
             </div>
@@ -126,11 +126,11 @@ const ClientManager: React.FC = () => {
           <p className="mt-1 text-sm text-gray-500">Commencez par ajouter votre premier client.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {clients.map((client) => (
-            <div key={client.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow">
+            <div key={client.id} className="bg-white rounded-lg shadow-md p-3 sm:p-4 lg:p-6 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">{client.name}</h3>
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 break-words pr-2 flex-1">{client.name}</h3>
                 <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                   <button
                     onClick={() => handleEdit(client)}
@@ -149,7 +149,7 @@ const ClientManager: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center text-xs sm:text-sm text-gray-600">
                   <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
-                  <span className="truncate">{client.email}</span>
+                  <span className="break-all">{client.email}</span>
                 </div>
                 <div className="flex items-start text-xs sm:text-sm text-gray-600">
                   <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-2 mt-0.5 flex-shrink-0" />
@@ -163,8 +163,8 @@ const ClientManager: React.FC = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-4">
-          <div className="relative top-4 sm:top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-3 sm:p-4">
+          <div className="relative top-2 sm:top-4 lg:top-20 mx-auto p-4 sm:p-5 border w-full max-w-sm sm:max-w-md shadow-lg rounded-md bg-white">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               {editingClient ? 'Modifier le client' : 'Ajouter un client'}
             </h3>
