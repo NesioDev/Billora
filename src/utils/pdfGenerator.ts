@@ -85,7 +85,7 @@ export const generateInvoicePDF = ({ invoice, userInfo, currencySymbol }: PDFGen
   doc.setTextColor(...darkGray);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(userInfo.fullName, 20, yPos);
+  doc.text(userInfo.companyName, 20, yPos);
   
   yPos += 6;
   doc.setFontSize(10);
