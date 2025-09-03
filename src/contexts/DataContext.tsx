@@ -17,6 +17,31 @@ const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => 
   ]);
 };
 
+// Fonction pour vérifier et mettre à jour les factures en retard
+const checkAndUpdateOverdueInvoices = async (invoices: Invoice[], updateInvoice: (id: string, data: Partial<Invoice>) => Promise<void>) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Début de la journée
+  
+  const overdueInvoices = invoices.filter(invoice => {
+    const dueDate = new Date(invoice.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    // Une facture est en retard si elle est envoyée et que la date d'échéance est dépassée
+    return invoice.status === 'sent' && dueDate < today;
+  });
+  
+  // Mettre à jour les factures en retard
+  for (const invoice of overdueInvoices) {
+    try {
+      await updateInvoice(invoice.id, { status: 'overdue' });
+      console.log(`Facture ${invoice.invoiceNumber} marquée comme en retard`);
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de la facture ${invoice.invoiceNumber}:`, error);
+    }
+  }
+  
+  return overdueInvoices.length;
+};
 interface DataContextType {
   clients: Client[];
   invoices: Invoice[];
@@ -73,6 +98,20 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     };
   }, [isAuthenticated, user]);
 
+  // Effet pour vérifier les factures en retard toutes les heures
+  useEffect(() => {
+    if (!isAuthenticated || !user || invoices.length === 0) return;
+    
+    // Vérification immédiate au chargement
+    checkAndUpdateOverdueInvoices(invoices, updateInvoice);
+    
+    // Vérification périodique toutes les heures
+    const interval = setInterval(() => {
+      checkAndUpdateOverdueInvoices(invoices, updateInvoice);
+    }, 60 * 60 * 1000); // 1 heure
+    
+    return () => clearInterval(interval);
+  }, [invoices, isAuthenticated, user, updateInvoice]);
   const loadData = async (mounted: boolean = true) => {
     if (!user || !mounted) {
       setLoading(false);
