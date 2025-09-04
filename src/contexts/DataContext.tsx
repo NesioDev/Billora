@@ -78,156 +78,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    
-    if (isAuthenticated && user) {
-      if (!dataLoaded) {
-        loadData(mounted);
-      }
-    } else {
-      setClients([]);
-      setInvoices([]);
-      setDataLoaded(false);
-      setError(null);
-      setLoading(false);
-    }
-    
-    return () => {
-      mounted = false;
-    };
-  }, [isAuthenticated, user]);
-
-  // Effet pour vérifier les factures en retard toutes les heures
-  useEffect(() => {
-    if (!isAuthenticated || !user || invoices.length === 0) return;
-    
-    // Vérification immédiate au chargement
-    checkAndUpdateOverdueInvoices(invoices, updateInvoice);
-    
-    // Vérification périodique toutes les heures
-    const interval = setInterval(() => {
-      checkAndUpdateOverdueInvoices(invoices, updateInvoice);
-    }, 60 * 60 * 1000); // 1 heure
-    
-    return () => clearInterval(interval);
-  }, [invoices, isAuthenticated, user, updateInvoice]);
-  const loadData = async (mounted: boolean = true) => {
-    if (!user || !mounted) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Timeout de sécurité global
-      const timeoutId = setTimeout(() => {
-        if (mounted) {
-          console.warn('Timeout de chargement des données - mode offline');
-          setError('Chargement lent - certaines données peuvent être indisponibles');
-          setLoading(false);
-        }
-      }, DATA_TIMEOUT);
-      
-      // Charger les données en parallèle pour améliorer les performances
-      const clientsPromise = supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-      const invoicesPromise = supabase
-          .from('invoices')
-          .select(`
-            *,
-            clients!inner(*),
-            invoice_items(*)
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-          
-      const [clientsResult, invoicesResult] = await Promise.all([
-        withTimeout(clientsPromise, DATA_TIMEOUT),
-        withTimeout(invoicesPromise, DATA_TIMEOUT)
-      ]);
-      
-      clearTimeout(timeoutId);
-      
-      if (!mounted) return;
-
-      // Traitement des clients
-      if (!clientsResult.error && clientsResult.data) {
-        const formattedClients: Client[] = clientsResult.data.map(client => ({
-          id: client.id,
-          name: client.name,
-          email: client.email,
-          address: client.address,
-          userId: client.user_id
-        }));
-        setClients(formattedClients);
-      } else if (clientsResult.error) {
-        console.error('Erreur chargement clients:', clientsResult.error);
-        setError('Erreur de chargement des clients');
-        setClients([]); // Fallback vers liste vide
-      }
-
-      // Traitement des factures
-      if (!invoicesResult.error && invoicesResult.data) {
-        const formattedInvoices: Invoice[] = invoicesResult.data.map(invoice => ({
-          id: invoice.id,
-          invoiceNumber: invoice.invoice_number,
-          clientId: invoice.client_id,
-          client: {
-            id: invoice.clients.id,
-            name: invoice.clients.name,
-            email: invoice.clients.email,
-            address: invoice.clients.address,
-            userId: invoice.clients.user_id
-          },
-          issueDate: invoice.issue_date,
-          dueDate: invoice.due_date,
-          items: invoice.invoice_items.map((item: any) => ({
-            id: item.id,
-            description: item.description,
-            quantity: parseFloat(item.quantity),
-            unitPrice: parseFloat(item.unit_price),
-            total: parseFloat(item.total)
-          })),
-          subtotal: parseFloat(invoice.subtotal),
-          taxRate: parseFloat(invoice.tax_rate),
-          taxAmount: parseFloat(invoice.tax_amount),
-          total: parseFloat(invoice.total),
-          status: invoice.status,
-          userId: invoice.user_id,
-          createdAt: invoice.created_at,
-          updatedAt: invoice.updated_at
-        }));
-        setInvoices(formattedInvoices);
-      } else if (invoicesResult.error) {
-        console.error('Erreur chargement factures:', invoicesResult.error);
-        setError('Erreur de chargement des factures');
-        setInvoices([]); // Fallback vers liste vide
-      }
-      
-      setDataLoaded(true);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      if (mounted) {
-        setError(error instanceof Error ? error.message : 'Erreur de chargement des données');
-        // En cas d'erreur, on garde les données existantes mais on arrête le loading
-        setDataLoaded(true);
-      }
-    } finally {
-      if (mounted) {
-        setLoading(false);
-      }
-    }
-  };
-
+  // Définir toutes les fonctions useCallback avant les useEffect
   const addClient = useCallback(async (clientData: Omit<Client, 'id' | 'userId'>) => {
     if (!user) return;
 
@@ -465,6 +316,156 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       throw error;
     }
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    if (isAuthenticated && user) {
+      if (!dataLoaded) {
+        loadData(mounted);
+      }
+    } else {
+      setClients([]);
+      setInvoices([]);
+      setDataLoaded(false);
+      setError(null);
+      setLoading(false);
+    }
+    
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, user]);
+
+  // Effet pour vérifier les factures en retard toutes les heures
+  useEffect(() => {
+    if (!isAuthenticated || !user || invoices.length === 0) return;
+    
+    // Vérification immédiate au chargement
+    checkAndUpdateOverdueInvoices(invoices, updateInvoice);
+    
+    // Vérification périodique toutes les heures
+    const interval = setInterval(() => {
+      checkAndUpdateOverdueInvoices(invoices, updateInvoice);
+    }, 60 * 60 * 1000); // 1 heure
+    
+    return () => clearInterval(interval);
+  }, [invoices, isAuthenticated, user, updateInvoice]);
+  const loadData = async (mounted: boolean = true) => {
+    if (!user || !mounted) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Timeout de sécurité global
+      const timeoutId = setTimeout(() => {
+        if (mounted) {
+          console.warn('Timeout de chargement des données - mode offline');
+          setError('Chargement lent - certaines données peuvent être indisponibles');
+          setLoading(false);
+        }
+      }, DATA_TIMEOUT);
+      
+      // Charger les données en parallèle pour améliorer les performances
+      const clientsPromise = supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+      const invoicesPromise = supabase
+          .from('invoices')
+          .select(`
+            *,
+            clients!inner(*),
+            invoice_items(*)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+          
+      const [clientsResult, invoicesResult] = await Promise.all([
+        withTimeout(clientsPromise, DATA_TIMEOUT),
+        withTimeout(invoicesPromise, DATA_TIMEOUT)
+      ]);
+      
+      clearTimeout(timeoutId);
+      
+      if (!mounted) return;
+
+      // Traitement des clients
+      if (!clientsResult.error && clientsResult.data) {
+        const formattedClients: Client[] = clientsResult.data.map(client => ({
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          address: client.address,
+          userId: client.user_id
+        }));
+        setClients(formattedClients);
+      } else if (clientsResult.error) {
+        console.error('Erreur chargement clients:', clientsResult.error);
+        setError('Erreur de chargement des clients');
+        setClients([]); // Fallback vers liste vide
+      }
+
+      // Traitement des factures
+      if (!invoicesResult.error && invoicesResult.data) {
+        const formattedInvoices: Invoice[] = invoicesResult.data.map(invoice => ({
+          id: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          clientId: invoice.client_id,
+          client: {
+            id: invoice.clients.id,
+            name: invoice.clients.name,
+            email: invoice.clients.email,
+            address: invoice.clients.address,
+            userId: invoice.clients.user_id
+          },
+          issueDate: invoice.issue_date,
+          dueDate: invoice.due_date,
+          items: invoice.invoice_items.map((item: any) => ({
+            id: item.id,
+            description: item.description,
+            quantity: parseFloat(item.quantity),
+            unitPrice: parseFloat(item.unit_price),
+            total: parseFloat(item.total)
+          })),
+          subtotal: parseFloat(invoice.subtotal),
+          taxRate: parseFloat(invoice.tax_rate),
+          taxAmount: parseFloat(invoice.tax_amount),
+          total: parseFloat(invoice.total),
+          status: invoice.status,
+          userId: invoice.user_id,
+          createdAt: invoice.created_at,
+          updatedAt: invoice.updated_at
+        }));
+        setInvoices(formattedInvoices);
+      } else if (invoicesResult.error) {
+        console.error('Erreur chargement factures:', invoicesResult.error);
+        setError('Erreur de chargement des factures');
+        setInvoices([]); // Fallback vers liste vide
+      }
+      
+      setDataLoaded(true);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      if (mounted) {
+        setError(error instanceof Error ? error.message : 'Erreur de chargement des données');
+        // En cas d'erreur, on garde les données existantes mais on arrête le loading
+        setDataLoaded(true);
+      }
+    } finally {
+      if (mounted) {
+        setLoading(false);
+      }
+    }
+  };
 
   // Mémoriser les valeurs du contexte pour éviter les re-renders inutiles
   const contextValue = useMemo(() => ({
