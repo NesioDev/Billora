@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Invoice } from '../types';
-import { FileText, Users, Euro, Calendar, CheckCircle, Clock, AlertCircle, XCircle, Download, Loader, Printer, Send } from 'lucide-react';
+import { FileText, Users, Euro, Calendar, CheckCircle, Clock, AlertCircle, XCircle, Download, Loader, Printer, Send, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
@@ -25,6 +25,37 @@ const Dashboard: React.FC = () => {
     return { totalAmount, paidAmount, pendingAmount };
   }, [invoices]);
 
+  // Calculer les notifications importantes
+  const notificationStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const overdueInvoices = invoices.filter(invoice => {
+      const dueDate = new Date(invoice.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      return invoice.status === 'overdue';
+    });
+    
+    const unpaidInvoices = invoices.filter(invoice => {
+      const issueDate = new Date(invoice.issueDate);
+      const daysSinceIssue = Math.floor((today.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24));
+      return invoice.status === 'sent' && daysSinceIssue > 7;
+    });
+    
+    const soonDueInvoices = invoices.filter(invoice => {
+      const dueDate = new Date(invoice.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const daysToDue = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return invoice.status === 'sent' && daysToDue >= 0 && daysToDue <= 3;
+    });
+    
+    return {
+      overdue: overdueInvoices.length,
+      unpaid: unpaidInvoices.length,
+      soonDue: soonDueInvoices.length,
+      total: overdueInvoices.length + unpaidInvoices.length + soonDueInvoices.length
+    };
+  }, [invoices]);
   const getStatusIcon = (status: Invoice['status']) => {
     switch (status) {
       case 'draft':
@@ -462,6 +493,31 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Tableau de bord</h2>
       </div>
+
+      {/* Bannière de notifications importantes */}
+      {notificationStats.total > 0 && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <Bell className="h-5 w-5 text-red-600 mr-3 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-900 mb-1">
+                Attention requise sur vos factures
+              </h3>
+              <div className="text-sm text-red-800 space-y-1">
+                {notificationStats.overdue > 0 && (
+                  <p>• {notificationStats.overdue} facture{notificationStats.overdue > 1 ? 's' : ''} en retard</p>
+                )}
+                {notificationStats.unpaid > 0 && (
+                  <p>• {notificationStats.unpaid} facture{notificationStats.unpaid > 1 ? 's' : ''} impayée{notificationStats.unpaid > 1 ? 's' : ''} depuis plus de 7 jours</p>
+                )}
+                {notificationStats.soonDue > 0 && (
+                  <p>• {notificationStats.soonDue} facture{notificationStats.soonDue > 1 ? 's' : ''} expire{notificationStats.soonDue > 1 ? 'nt' : ''} dans les 3 prochains jours</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">

@@ -1,6 +1,8 @@
 import React, { ReactNode, useState, memo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import { LogOut, User, FileText, Users, Settings, PlusCircle, Menu, X, FileCheck, HelpCircle } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +12,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) => {
   const { user, logout } = useAuth();
+  const { invoices } = useData();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
@@ -81,6 +84,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
             
             {/* Desktop user menu */}
             <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
+              <NotificationCenter invoices={invoices} />
               <div className="flex items-center text-xs lg:text-sm text-gray-600 bg-gray-50 px-2 lg:px-3 py-1 lg:py-2 rounded-lg">
                 <User className="h-4 w-4 mr-2 text-gray-400" />
                 <span className="truncate max-w-20 lg:max-w-32 font-medium">{user?.email}</span>
@@ -135,6 +139,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
               
               {/* Mobile user info and logout */}
               <div className="border-t border-gray-100 pt-4 mt-4">
+                <div className="mb-4">
+                  <NotificationCenter invoices={invoices} isMobile={true} />
+                </div>
                 <div className="flex items-center px-3 py-2 text-sm text-gray-600 bg-gray-50 rounded-md mb-2">
                   <User className="h-4 w-4 mr-2" />
                   <span className="truncate">{user?.email}</span>
