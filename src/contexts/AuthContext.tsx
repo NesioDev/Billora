@@ -4,8 +4,8 @@ import { User, AuthState } from '../types';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-// Timeout pour les requêtes Supabase (10 secondes)
-const SUPABASE_TIMEOUT = 180000;
+// Timeout pour les requêtes Supabase (5 minutes)
+const SUPABASE_TIMEOUT = 300000;
 
 // Fonction utilitaire pour ajouter un timeout aux requêtes
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
