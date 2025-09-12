@@ -13,6 +13,8 @@ const Dashboard: React.FC = () => {
   const { user, getCurrencySymbol } = useAuth();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const [selectedMobileInvoice, setSelectedMobileInvoice] = useState<Invoice | null>(null);
 
   const currencySymbol = getCurrencySymbol();
   
@@ -157,6 +159,30 @@ const Dashboard: React.FC = () => {
       printWindow.close();
     };
   }, [user, currencySymbol]);
+
+  const handleMobileInvoiceClick = (invoice: Invoice) => {
+    setSelectedMobileInvoice(invoice);
+    setShowMobileActions(true);
+  };
+
+  const handleMobileAction = (action: 'download' | 'print' | 'email') => {
+    if (!selectedMobileInvoice) return;
+    
+    switch (action) {
+      case 'download':
+        handleDownloadInvoicePDF(selectedMobileInvoice);
+        break;
+      case 'print':
+        handlePrintInvoice(selectedMobileInvoice);
+        break;
+      case 'email':
+        alert('Fonctionnalité d\'envoi par email à implémenter');
+        break;
+    }
+    
+    setShowMobileActions(false);
+    setSelectedMobileInvoice(null);
+  };
 
   // Fonction pour générer le HTML d'impression
   const generatePrintHTML = (invoice: Invoice, userInfo: any, currencySymbol: string) => {
@@ -590,7 +616,7 @@ const Dashboard: React.FC = () => {
                 <div 
                   key={invoice.id} 
                   className="border-b border-gray-200 p-4 space-y-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handleInvoiceClick(invoice)}
+                  onClick={() => handleMobileInvoiceClick(invoice)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="min-w-0 flex-1 pr-2">
@@ -721,6 +747,61 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal d'actions mobile */}
+      {showMobileActions && selectedMobileInvoice && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-4 sm:hidden">
+          <div className="relative top-1/2 transform -translate-y-1/2 mx-auto p-6 border w-full max-w-sm shadow-lg rounded-lg bg-white">
+            <div className="text-center mb-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Actions pour la facture
+              </h3>
+              <p className="text-sm text-gray-600">
+                {selectedMobileInvoice.invoiceNumber}
+              </p>
+              <p className="text-xs text-gray-500">
+                {selectedMobileInvoice.client.name} • {formatAmount(selectedMobileInvoice.total)}
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => handleMobileAction('download')}
+                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Télécharger PDF
+              </button>
+              
+              <button
+                onClick={() => handleMobileAction('print')}
+                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <Printer className="h-5 w-5 mr-2" />
+                Imprimer
+              </button>
+              
+              <button
+                onClick={() => handleMobileAction('email')}
+                className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Send className="h-5 w-5 mr-2" />
+                Envoyer par email
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowMobileActions(false);
+                  setSelectedMobileInvoice(null);
+                }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
