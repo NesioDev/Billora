@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (sessionError) {
           console.error('Erreur session:', sessionError);
-          setError('Erreur de connexion');
+          setError(sessionError.message || 'Erreur de connexion');
           setLoading(false);
           return;
         }
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading user profile:', error);
-        setError('Erreur de chargement du profil');
+        setError(error.message || 'Erreur de chargement du profil');
         setLoading(false);
         return;
       }
@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
-      setError('Erreur de chargement du profil');
+      setError(error instanceof Error ? error.message : 'Erreur de chargement du profil');
       setLoading(false);
     }
   };
