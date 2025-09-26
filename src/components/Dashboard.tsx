@@ -1,9 +1,9 @@
 import React, { memo, useMemo } from 'react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Invoice } from '../types';
-import { FileText, Users, Euro, Calendar, CheckCircle, Clock, AlertCircle, XCircle, Download, Loader, Printer, Send, Bell } from 'lucide-react';
+import { FileText, Users, Euro, Calendar, CheckCircle, Clock, AlertCircle, XCircle, Download, Loader, Printer, Send, Bell, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { downloadInvoicePDF } from '../utils/pdfGenerator';
@@ -15,17 +15,32 @@ const Dashboard: React.FC = () => {
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [selectedMobileInvoice, setSelectedMobileInvoice] = useState<Invoice | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const currencySymbol = getCurrencySymbol();
   
+  // Filtrer les factures selon le terme de recherche
+  const filteredInvoices = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return invoices;
+    }
+    
+    const term = searchTerm.toLowerCase().trim();
+    return invoices.filter(invoice => 
+      invoice.invoiceNumber.toLowerCase().includes(term) ||
+      invoice.client.name.toLowerCase().includes(term) ||
+      invoice.client.email.toLowerCase().includes(term)
+    );
+  }, [invoices, searchTerm]);
+
   // Mémoriser les calculs pour éviter les recalculs inutiles
   const statistics = useMemo(() => {
-    const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
-    const paidAmount = invoices.filter(i => i.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
+    const totalAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+    const paidAmount = filteredInvoices.filter(i => i.status === 'paid').reduce((sum, invoice) => sum + invoice.total, 0);
     const pendingAmount = totalAmount - paidAmount;
     
     return { totalAmount, paidAmount, pendingAmount };
-  }, [invoices]);
+  }, [filteredInvoices]);
 
   // Calculer les notifications importantes
   const notificationStats = useMemo(() => {
@@ -183,6 +198,10 @@ const Dashboard: React.FC = () => {
     setShowMobileActions(false);
     setSelectedMobileInvoice(null);
   };
+
+  const clearSearch = useCallback(() => {
+    setSearchTerm('');
+  }, []);
 
   // Fonction pour générer le HTML d'impression
   const generatePrintHTML = (invoice: Invoice, userInfo: any, currencySymbol: string) => {
@@ -545,6 +564,37 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Barre de recherche */}
+      <div className="bg-white shadow-md rounded-lg p-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Rechercher par numéro de facture, nom ou email du client..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+          />
+          {searchTerm && (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <button
+                onClick={clearSearch}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </div>
+        {searchTerm && (
+          <div className="mt-2 text-sm text-gray-600">
+            {filteredInvoices.length} résultat{filteredInvoices.length !== 1 ? 's' : ''} trouvé{filteredInvoices.length !== 1 ? 's' : ''} pour "{searchTerm}"
+          </div>
+        )}
+      </div>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
@@ -602,7 +652,21 @@ const Dashboard: React.FC = () => {
           <h3 className="text-base sm:text-lg font-medium text-gray-900">Historique des factures</h3>
         </div>
         
-        {invoices.length === 0 ? (
+        {filteredInvoices.length === 0 && searchTerm ? (
+          <div className="text-center py-8 sm:py-12 px-4">
+            <Search className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun résultat</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Aucune facture ne correspond à votre recherche "{searchTerm}".
+            </p>
+            <button
+              onClick={clearSearch}
+              className="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Effacer la recherche
+            </button>
+          </div>
+        ) : filteredInvoices.length === 0 ? (
           <div className="text-center py-8 sm:py-12 px-4">
             <FileText className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune facture</h3>
@@ -612,7 +676,7 @@ const Dashboard: React.FC = () => {
           <div className="overflow-x-auto">
             {/* Mobile view */}
             <div className="block sm:hidden">
-              {invoices.map((invoice) => (
+              {filteredInvoices.map((invoice) => (
                 <div 
                   key={invoice.id} 
                   className="border-b border-gray-200 p-4 space-y-3 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -686,7 +750,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {invoices.map((invoice) => (
+                {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{invoice.client.name}</div>
